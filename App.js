@@ -5,7 +5,7 @@ import {
 	TouchableOpacity
 } from 'react-native';
 /* TODO:
- *	1) Realtime calculations, on pressing =, implement the long press action instead
+ *	1) Realtime calculations, on pressing =, implement the long press action instead <== DONE
  *
  *
  */
@@ -20,9 +20,18 @@ export default class App extends Component {
 	removeResultDigit = () => {
 		this.setState({resultText: this.state.resultText.slice(0,-1)})
 	}
-	calculateResult(flag) {
+	truncate(number,digits) {
+		if((number%1))
+		{
+			number = (number*Math.pow(10,digits)-(number*Math.pow(10,digits))%1)/Math.pow(10,digits)
+		}
+		console.log("truncated number is : " + number);
+		return number
+		
+	}
+	calculateResult(realTimeExpression, flag) {
 		//flag just has the value of true if there is a operator at the end of the expression when pressing =
-		let newExpression = this.state.resultText
+		let newExpression = realTimeExpression
 		if(flag)
 		{
 			newExpression = newExpression.slice(0,-1);
@@ -34,28 +43,37 @@ export default class App extends Component {
 			if(newExpression[i]==='×')	newExpression[i]='*';
 		}
 		newExpression = newExpression.join('')
+		console.log("Is there an operator at end? : " + flag, "\nEvaluated Expression is : " + newExpression)
 		this.setState({calculationText: eval(newExpression)});
 		return 
 	}
 	copyToResultText = () => {
-		console.log("this was called");
-		
-		this.setState({resultText: this.state.calculationText + ''});
+		let x = this.state.calculationText + '';
+		x = this.truncate(x,3)
+		this.setState({resultText: x + ''});
 		this.setState({calculationText: ''});
+	}
+	realTimeEval = (pressedButton) => {
+		const operations = ['+', '-', '×', '÷']
+		let realTimeExpression = this.state.resultText + pressedButton;
+		const lastInputChar = realTimeExpression.split('').pop()
+		console.log("Answer text at this time : " + realTimeExpression, 
+					"\nAnswer text at n-1 in result text is : " + lastInputChar);
+		var flag = false;
+		if(operations.indexOf(lastInputChar)>=0)
+		{	
+			flag = true;
+		}
+		return this.calculateResult(realTimeExpression,flag);
+		
 	}
 	buttonPressed(pressedButton) {
 		const operations = ['+', '-', '×', '÷']
-		
+		//console.log(this.state.resultText);
 		const lastInputChar = this.state.resultText.split('').pop()
 		if(pressedButton==='=')
 		{
-			var flag = false;
-			if(operations.indexOf(lastInputChar)>=0)
-			{	
-				flag = true;
-				this.setState({resultText: this.state.resultText.slice(0,-1)});
-			}
-			return this.calculateResult(flag);
+			this.copyToResultText();
 		}	//calculate result and return answer
 		else if(operations.indexOf(lastInputChar)>=0 && operations.indexOf(pressedButton)>=0)
 		{
@@ -66,7 +84,12 @@ export default class App extends Component {
 		}//if past was a operation disallow adding new operator
 		else if((pressedButton==='+'||pressedButton==='×'||pressedButton==='÷'||pressedButton==='-') && this.state.resultText==='') 
 			return 	//Empty textbox means no sign will be accepted
-		this.setState({resultText: this.state.resultText + pressedButton});
+		else
+			this.setState({resultText: this.state.resultText + pressedButton});
+		if(pressedButton!=='=')
+			this.realTimeEval(pressedButton);
+		console.log(this.state.resultText ? this.state.resultText : 'Nada' , pressedButton ? pressedButton : 'Nada', this.state.calculationText ? this.state.calculationText : 'Nada'  , lastInputChar ? lastInputChar : 'Nada');
+			
 	}
 	render() {
 		// For Rendering the numbers on the screen
@@ -107,7 +130,7 @@ export default class App extends Component {
 							<TouchableOpacity onPress={() => this.buttonPressed(0)} style={styles.numberBox}>
 								<Text style={styles.numpad}>0</Text>
 							</TouchableOpacity>
-							<TouchableOpacity onPress={() => this.buttonPressed('=')} onLongPress={this.copyToResultText} style={styles.specialKeys}>
+							<TouchableOpacity onPress={() => this.buttonPressed('=')} style={styles.specialKeys}>
 								<Text style={styles.numpad}>=</Text>
 							</TouchableOpacity>
 						</View>
